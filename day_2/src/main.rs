@@ -9,8 +9,6 @@ struct Game {
 }
 
 fn main() {
-    let check_values = (12u32, 13u32, 14u32);
-
     let lines = BufReader::new(stdin().lock()).lines();
     let games: Vec<Game> = lines
         .filter_map(|l| match l {
@@ -21,14 +19,10 @@ fn main() {
 
     let answer: u32 = games
         .iter()
-        .filter_map(|game| {
-            if game.r.iter().max().unwrap_or(&0) > &check_values.0
-                || game.g.iter().max().unwrap_or(&0) > &check_values.1
-                || game.b.iter().max().unwrap_or(&0) > &check_values.2
-            {
-                return None;
-            }
-            Some(game.id)
+        .map(|game| {
+            game.r.iter().max().unwrap_or(&0)
+                * game.g.iter().max().unwrap_or(&0)
+                * game.b.iter().max().unwrap_or(&0)
         })
         .sum();
 
