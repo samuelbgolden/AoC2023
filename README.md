@@ -10,3 +10,5 @@ on Windows, or
 cargo run < .\resources\input.txt
 ```
 everywhere else.
+
+To find my part 1 solutions, look in the commit history for the `main` file of each day.
