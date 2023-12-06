@@ -27,14 +27,16 @@ impl Transformation {
 
 fn process() -> Option<i64> {
     let mut lines = BufReader::new(stdin().lock()).lines();
-    let seeds: Vec<i64> = lines
+    let seeds_values: Vec<i64> = lines
         .next()?
         .expect("to read line")
         .strip_prefix("seeds: ")
         .expect("'seeds: ' found in string")
         .split(' ')
         .map(|n| n.parse::<i64>().expect(&format!("parse i32 from {}", n)))
-        .collect();
+        .collect::<Vec<i64>>();
+
+    let seed_ranges: Vec<&[i64]> = seeds_values.chunks(2).collect();
 
     let mut transformations: Vec<Transformation> = vec![];
 
@@ -56,10 +58,25 @@ fn process() -> Option<i64> {
         }
     }
 
-    seeds
-        .iter()
-        .map(|seed| transformations.iter().fold(*seed, |s, tr| tr.transform(s)))
-        .min()
+    // You could definitely do some math here to combine all of the transformations into one
+    // so there's only one operation per seed to check; might do that in the future instead
+    // of going through all transformations for each seed
+
+    let mut min_location: i64 = i64::MAX;
+    for seed_range in seed_ranges.iter() {
+        println!(
+            "seed range starting at {} with length {}",
+            seed_range[0], seed_range[1]
+        );
+        for seed in seed_range[0]..(seed_range[0] + seed_range[1]) {
+            let location = transformations.iter().fold(seed, |s, tr| tr.transform(s));
+            if location < min_location {
+                min_location = location;
+            }
+        }
+    }
+
+    return Some(min_location);
 }
 
 fn main() {
