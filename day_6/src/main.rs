@@ -2,20 +2,8 @@ use std::io::{stdin, BufRead, BufReader};
 
 fn main() {
     let mut lines = BufReader::new(stdin().lock()).lines();
-    let times: Vec<i64> = lines
-        .next()
-        .expect("first line present")
-        .expect("retrieve line of times")
-        .split_whitespace()
-        .filter_map(|s| s.parse::<i64>().ok())
-        .collect();
-    let distances: Vec<i64> = lines
-        .next()
-        .expect("first line present")
-        .expect("retrieve line of times")
-        .split_whitespace()
-        .filter_map(|s| s.parse::<i64>().ok())
-        .collect();
+    let times: Vec<i64> = vec![parse_num_from_line(lines.next())];
+    let distances: Vec<i64> = vec![parse_num_from_line(lines.next())];
 
     let mut product: i64 = 1;
 
@@ -34,6 +22,17 @@ fn main() {
     }
 
     println!("product: {}", product);
+}
+
+fn parse_num_from_line<E: std::fmt::Debug>(line: Option<Result<String, E>>) -> i64 {
+    line.expect("first line present")
+        .expect("retrieve line of times")
+        .split(':')
+        .last()
+        .expect("get numbers string")
+        .replace(" ", "")
+        .parse::<i64>()
+        .expect("parse string to i64")
 }
 
 fn get_roots(a: f64, b: f64, c: f64) -> (f64, f64) {
