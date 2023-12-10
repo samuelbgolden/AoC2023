@@ -26,10 +26,7 @@ fn main() {
             .iter()
             .sorted()
             .zip(1..)
-            .map(|(val, i)| {
-                println!("hand with rank {}: {}", i, val.0);
-                val.1 * (i as u64)
-            })
+            .map(|(val, i)| { val.1 * (i as u64) })
             .sum::<u64>()
     );
 }

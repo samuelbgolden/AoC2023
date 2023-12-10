@@ -1,7 +1,6 @@
-use std::fmt::Display;
-
-use crate::rank::Rank;
+use crate::rank::{Rank, JOKER};
 use itertools::Itertools;
+use std::fmt::Display;
 
 const HAND_SIZE: usize = 5;
 
@@ -10,27 +9,48 @@ pub struct Hand([Rank; HAND_SIZE]);
 
 impl Hand {
     pub fn get_value(&self) -> u32 {
+        let mut joker_count: u32 = 0;
+
+        // count of each card rank
         let mut freq_counts: Vec<u32> = self
             .0
             .iter()
             .sorted()
             .group_by(|r| *r)
             .into_iter()
-            .map(|(_, group)| group.count() as u32)
+            .filter_map(|(key, group)| {
+                // extract and remove the joker count from this list
+                if (*key).eq(&JOKER) {
+                    joker_count = group.count() as u32;
+                    return None;
+                }
+                return Some(group.count() as u32);
+            })
             .sorted()
             .collect_vec();
+
+        // add the joker count to the highest count of non-joker card ranks is
+        if self.0.contains(&JOKER) {
+            if let Some(count) = freq_counts.last_mut() {
+                *count += joker_count;
+            } else {
+                // case where all 5 are jokers
+                freq_counts.push(joker_count);
+            }
+        }
+
         freq_counts.resize(5, 0);
 
         let freq_counts_arr: [u32; 5] = freq_counts.try_into().expect("build array");
 
         match freq_counts_arr {
-            [5, _, _, _, _] => 7,
-            [1, 4, _, _, _] => 6,
-            [2, 3, _, _, _] => 5,
-            [1, 1, 3, _, _] => 4,
-            [1, 2, 2, _, _] => 3,
-            [1, 1, 1, 2, _] => 2,
-            [1, 1, 1, 1, 1] => 1,
+            [5, _, _, _, _] => 7, // five of a kind
+            [1, 4, _, _, _] => 6, // four of a kind
+            [2, 3, _, _, _] => 5, // full house
+            [1, 1, 3, _, _] => 4, // three of a kind
+            [1, 2, 2, _, _] => 3, // two pair
+            [1, 1, 1, 2, _] => 2, // one pair
+            [1, 1, 1, 1, 1] => 1, // high card
             _ => 0,
         }
     }

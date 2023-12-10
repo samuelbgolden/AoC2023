@@ -2,12 +2,14 @@ use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use std::fmt::Display;
 
-static RANK_STR: &str = "23456789TJQKA";
+static RANK_STR: &str = "J23456789TQKA";
 static RANK_MAP: Lazy<HashMap<char, u32>> = Lazy::new(|| {
     HashMap::<char, u32>::from_iter(RANK_STR.char_indices().map(|(i, c)| (c, i as u32)))
 });
 
-#[derive(PartialEq, Eq, Debug)]
+pub const JOKER: Lazy<Rank> = Lazy::new(|| Rank::from('J'));
+
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub struct Rank(pub char);
 
 impl From<char> for Rank {
