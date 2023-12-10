@@ -18,7 +18,7 @@ fn main() {
     let next_vals_sum: Int = seqs
         .iter_mut()
         .map(|s| {
-            let next = s.extrapolate_next();
+            let next = s.extrapolate_prev();
             //println!("{}\n", s);
             next
         })

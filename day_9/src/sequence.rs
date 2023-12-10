@@ -4,6 +4,7 @@ pub type Int = i64;
 
 pub struct Sequence {
     sequences: Vec<Vec<Int>>,
+    seq_starting_vals: Vec<Int>,
     seq_final_vals: Vec<Int>,
     zero_layer_built: bool,
 }
@@ -12,6 +13,7 @@ impl Sequence {
     pub fn new(values: Vec<Int>) -> Self {
         Self {
             zero_layer_built: !values.iter().any(|x| *x != 0),
+            seq_starting_vals: vec![values[0]],
             seq_final_vals: vec![*values.last().expect("has value")],
             sequences: vec![values],
         }
@@ -37,6 +39,7 @@ impl Sequence {
                 new_layer.push(diff);
             });
         self.zero_layer_built = all_zero;
+        self.seq_starting_vals.push(new_layer[0]);
         self.seq_final_vals
             .push(*new_layer.last().expect("has a value"));
         self.sequences.push(new_layer);
@@ -47,6 +50,17 @@ impl Sequence {
             self.next_layer();
         }
         return self.seq_final_vals.iter().rev().fold(0, |acc, n| acc + n);
+    }
+
+    pub fn extrapolate_prev(&mut self) -> Int {
+        while !self.zero_layer_built {
+            self.next_layer();
+        }
+        return self
+            .seq_starting_vals
+            .iter()
+            .rev()
+            .fold(0, |acc, n| n - acc);
     }
 }
 
