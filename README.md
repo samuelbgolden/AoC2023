@@ -21,3 +21,5 @@ To find my part 1 solutions, look in the commit history for the `main` file of e
 ## To revisit:
 
 - **Day 5**: definitely missed some optimization
+- **Day 10**: could be optimized too, but produces a nice animation!
+![big input animation](https://drive.google.com/file/d/1NyHVYb-5Yb8YU7RwZ40DF1z_T5ACa4z3/view?usp=drive_link)
