@@ -1,6 +1,8 @@
 use itertools::Itertools;
 use std::io::{stdin, BufRead, BufReader};
 
+static EXPANSION_DIST: usize = 1000000;
+
 fn main() {
     let lines = BufReader::new(stdin().lock()).lines();
 
@@ -32,14 +34,14 @@ fn main() {
     let expanded_cols: Vec<usize> = (0..size_of_the_universe.1)
         .filter(|y| !galaxy_positions.0.contains(y))
         .collect();
-    galaxy_positions
-        .0
-        .iter_mut()
-        .for_each(|x| *x += expanded_cols.iter().filter(|col| *col < x).count());
-    galaxy_positions
-        .1
-        .iter_mut()
-        .for_each(|y| *y += expanded_rows.iter().filter(|row| *row < y).count());
+    galaxy_positions.0.iter_mut().for_each(|x| {
+        *x += (expanded_cols.iter().filter(|col| *col < x).count())
+            * 1usize.max(EXPANSION_DIST - 1usize)
+    });
+    galaxy_positions.1.iter_mut().for_each(|y| {
+        *y += (expanded_rows.iter().filter(|row| *row < y).count())
+            * 1usize.max(EXPANSION_DIST - 1usize)
+    });
 
     let dist_sum: usize = galaxy_positions
         .0
