@@ -64,18 +64,50 @@ impl Pattern {
         (0..self.size.x).all(|x| *self.get(&Point::new(x, y0)) == *self.get(&Point::new(x, y1)))
     }
 
+    // returns the number of differences found, returns early if the number is above passed allowance
+    fn check_cols_equal_with_allowance(&self, x0: usize, x1: usize, allow: usize) -> usize {
+        let mut count = 0;
+        for (p0, p1) in (0..self.size.y).map(|y| (Point::new(x0, y), Point::new(x1, y))) {
+            if self.get(&p0) != self.get(&p1) {
+                count += 1;
+                if count > allow {
+                    return count;
+                }
+            }
+        }
+        return count;
+    }
+
+    // returns the number of differences found, returns early if the number is above passed allowance
+    fn check_rows_equal_with_allowance(&self, y0: usize, y1: usize, allow: usize) -> usize {
+        let mut count = 0;
+        for (p0, p1) in (0..self.size.x).map(|x| (Point::new(x, y0), Point::new(x, y1))) {
+            if self.get(&p0) != self.get(&p1) {
+                count += 1;
+                if count > allow {
+                    return count;
+                }
+            }
+        }
+        return count;
+    }
+
     fn find_sym_line(&self) -> (usize, usize) {
+        let mut found;
+        let mut differences;
         for (p0, p1) in Vec::from_iter(0..self.size.x)
             .as_slice()
             .windows(2)
             .map(|w| (Point::new(w[0], 0), Point::new(w[1], 0)))
         {
-            let mut found = false;
+            found = false;
+            differences = 0usize;
             for (c0, c1) in (0..(p0.x + 1)).rev().zip(p1.x..self.size.x) {
-                if !self.check_cols_equal(c0, c1) {
+                differences += self.check_cols_equal_with_allowance(c0, c1, 1);
+                if differences > 1 {
                     break;
                 }
-                if c0 == 0 || c1 == (self.size.x - 1) {
+                if (c0 == 0 || c1 == (self.size.x - 1)) && differences == 1 {
                     found = true;
                     break;
                 }
@@ -89,12 +121,14 @@ impl Pattern {
             .windows(2)
             .map(|w| (Point::new(0, w[0]), Point::new(0, w[1])))
         {
-            let mut found = false;
+            differences = 0usize;
+            found = false;
             for (r0, r1) in (0..(p0.y + 1)).rev().zip(p1.y..self.size.y) {
-                if !self.check_rows_equal(r0, r1) {
+                differences += self.check_rows_equal_with_allowance(r0, r1, 1);
+                if differences > 1 {
                     break;
                 }
-                if r0 == 0 || r1 == (self.size.y - 1) {
+                if (r0 == 0 || r1 == (self.size.y - 1)) && differences == 1 {
                     found = true;
                     break;
                 }
