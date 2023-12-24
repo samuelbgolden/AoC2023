@@ -3,6 +3,7 @@ use std::{
     collections::HashMap,
     fmt::Display,
     io::{stdin, BufReader, Read},
+    ops::Range,
 };
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -22,6 +23,14 @@ enum Item {
     Boulder,
     Wall,
     Empty,
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+enum Direction {
+    North,
+    East,
+    South,
+    West,
 }
 
 struct Dish {
@@ -59,22 +68,45 @@ impl Dish {
         }
     }
 
-    fn roll_north(&mut self) {
+    fn roll_in_direction(&mut self, dir: Direction) {
         let mut section_start;
         let mut section_boulders: Vec<Point> = vec![];
         let mut boulder_count;
-        for col in 0..self.size.x {
+
+        let outer_range;
+        let inner_range;
+
+        match dir {
+            Direction::North => {
+                outer_range = 0..=(self.size.x - 1);
+                inner_range = 0..=(self.size.y - 1);
+            }
+            Direction::East => {
+                outer_range = (self.size.y - 1)..=0;
+                inner_range = (self.size.x - 1)..=0;
+            }
+            Direction::South => {
+                outer_range = (self.size.x - 1)..=0;
+                inner_range = (self.size.y - 1)..=0;
+            }
+            Direction::West => {
+                outer_range = 0..=(self.size.y - 1);
+                inner_range = 0..=(self.size.x - 1);
+            }
+        }
+
+        for outer in outer_range {
             section_start = 0;
-            //println!("rolling col {}", col);
-            for y in 0..self.size.y {
-                let pnt = Point::new(col, y);
+            for inner in inner_range.clone() {
+                let pnt;
+                if [Direction::North, Direction::South].contains(&dir) {
+                    pnt = Point::new(outer, inner);
+                } else {
+                    pnt = Point::new(inner, outer);
+                }
                 match self.get(&pnt) {
                     Item::Boulder => section_boulders.push(pnt),
                     Item::Wall => {
-                        //println!(
-                        //    "\twall encountered @ {}: boulders {:?}, sect start {}",
-                        //    pnt.y, section_boulders, section_start
-                        //);
                         boulder_count = section_boulders.len();
 
                         // clear previous boulder positions
@@ -84,22 +116,23 @@ impl Dish {
                         }
 
                         // add boulders from the top down
-                        for inner_y in (section_start)..(section_start + boulder_count) {
-                            self.map.insert(Point::new(col, inner_y), Item::Boulder);
+                        for i in (section_start)..(section_start + boulder_count) {
+                            let p;
+                            if [Direction::North, Direction::South].contains(&dir) {
+                                p = Point::new(outer, i);
+                            } else {
+                                p = Point::new(i, outer);
+                            }
+                            self.map.insert(p, Item::Boulder);
                         }
 
                         // reset boulder/wall info
                         assert!(section_boulders.is_empty());
-                        section_start = y + 1;
+                        section_start = inner + 1;
                     }
                     Item::Empty => (),
                 }
             }
-
-            //println!(
-            //    "\tend of col: boulders {:?}, sect start {}",
-            //    section_boulders, section_start
-            //);
 
             boulder_count = section_boulders.len();
             for _ in 0..section_boulders.len() {
@@ -108,8 +141,14 @@ impl Dish {
             }
 
             // add boulders from the top down
-            for inner_y in (section_start)..(section_start + boulder_count) {
-                self.map.insert(Point::new(col, inner_y), Item::Boulder);
+            for i in (section_start)..(section_start + boulder_count) {
+                let p;
+                if [Direction::North, Direction::South].contains(&dir) {
+                    p = Point::new(outer, i);
+                } else {
+                    p = Point::new(i, outer);
+                }
+                self.map.insert(p, Item::Boulder);
             }
         }
     }
@@ -179,7 +218,8 @@ fn main() {
     }
 
     println!("og map:\n{}", dish);
-    dish.roll_north();
+    let iterations = 1;
+    dish.roll_in_direction(Direction::East);
     println!("map rolled north:\n{}", dish);
     println!("load on north supports: {}", dish.calc_north_load());
 }
