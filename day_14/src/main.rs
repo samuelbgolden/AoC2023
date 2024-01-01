@@ -3,7 +3,6 @@ use std::{
     collections::HashMap,
     fmt::Display,
     io::{stdin, BufReader, Read},
-    ops::Range,
 };
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -69,36 +68,30 @@ impl Dish {
     }
 
     fn roll_in_direction(&mut self, dir: Direction) {
-        let mut section_start;
+        let mut section_marker;
         let mut section_boulders: Vec<Point> = vec![];
         let mut boulder_count;
+        let mut pnt;
 
-        let outer_range;
-        let inner_range;
+        let outer_range: Vec<usize>;
+        let inner_range: Vec<usize>;
 
         match dir {
-            Direction::North => {
-                outer_range = 0..=(self.size.x - 1);
-                inner_range = 0..=(self.size.y - 1);
+            Direction::North | Direction::South => {
+                // works
+                outer_range = (0..=(self.size.x - 1)).collect();
+                inner_range = (0..=(self.size.y - 1)).collect();
             }
-            Direction::East => {
-                outer_range = (self.size.y - 1)..=0;
-                inner_range = (self.size.x - 1)..=0;
-            }
-            Direction::South => {
-                outer_range = (self.size.x - 1)..=0;
-                inner_range = (self.size.y - 1)..=0;
-            }
-            Direction::West => {
-                outer_range = 0..=(self.size.y - 1);
-                inner_range = 0..=(self.size.x - 1);
+            Direction::East | Direction::West => {
+                // does nothing
+                outer_range = (0..=(self.size.y - 1)).collect();
+                inner_range = (0..=(self.size.x - 1)).collect();
             }
         }
 
         for outer in outer_range {
-            section_start = 0;
+            section_marker = 0;
             for inner in inner_range.clone() {
-                let pnt;
                 if [Direction::North, Direction::South].contains(&dir) {
                     pnt = Point::new(outer, inner);
                 } else {
@@ -115,23 +108,20 @@ impl Dish {
                                 .insert(section_boulders.pop().unwrap(), Item::Empty);
                         }
 
-                        // add boulders from the top down
-                        for i in (section_start)..(section_start + boulder_count) {
-                            let p;
-                            if [Direction::North, Direction::South].contains(&dir) {
-                                p = Point::new(outer, i);
-                            } else {
-                                p = Point::new(i, outer);
-                            }
-                            self.map.insert(p, Item::Boulder);
-                        }
+                        self.add_boulders_in_dir(&pnt, &dir, boulder_count, section_marker, outer);
 
                         // reset boulder/wall info
                         assert!(section_boulders.is_empty());
-                        section_start = inner + 1;
+                        section_marker = inner + 1;
                     }
                     Item::Empty => (),
                 }
+            }
+
+            if [Direction::North, Direction::South].contains(&dir) {
+                pnt = Point::new(outer, self.size.y);
+            } else {
+                pnt = Point::new(self.size.x, outer);
             }
 
             boulder_count = section_boulders.len();
@@ -140,15 +130,43 @@ impl Dish {
                     .insert(section_boulders.pop().unwrap(), Item::Empty);
             }
 
-            // add boulders from the top down
-            for i in (section_start)..(section_start + boulder_count) {
-                let p;
-                if [Direction::North, Direction::South].contains(&dir) {
+            self.add_boulders_in_dir(&pnt, &dir, boulder_count, section_marker, outer);
+        }
+    }
+
+    fn add_boulders_in_dir(
+        &mut self,
+        pnt: &Point,
+        dir: &Direction,
+        boulder_count: usize,
+        section_marker: usize,
+        outer: usize,
+    ) {
+        let mut p;
+        match dir {
+            Direction::North => {
+                for i in (section_marker)..(section_marker + boulder_count) {
                     p = Point::new(outer, i);
-                } else {
-                    p = Point::new(i, outer);
+                    self.map.insert(p, Item::Boulder);
                 }
-                self.map.insert(p, Item::Boulder);
+            }
+            Direction::East => {
+                for i in (pnt.x - boulder_count)..(pnt.x) {
+                    p = Point::new(i, outer);
+                    self.map.insert(p, Item::Boulder);
+                }
+            }
+            Direction::South => {
+                for i in (pnt.y - boulder_count)..(pnt.y) {
+                    p = Point::new(outer, i);
+                    self.map.insert(p, Item::Boulder);
+                }
+            }
+            Direction::West => {
+                for i in (section_marker)..(section_marker + boulder_count) {
+                    p = Point::new(i, outer);
+                    self.map.insert(p, Item::Boulder);
+                }
             }
         }
     }
@@ -218,8 +236,66 @@ fn main() {
     }
 
     println!("og map:\n{}", dish);
-    let iterations = 1;
-    dish.roll_in_direction(Direction::East);
-    println!("map rolled north:\n{}", dish);
-    println!("load on north supports: {}", dish.calc_north_load());
+
+    // get sample of iterations to find pattern in
+    let mut north_loads: Vec<usize> = vec![];
+    let trim_sample_start: usize = 100;
+    let sample_iterations: usize = 1000;
+    for _ in 0..sample_iterations {
+        for dir in [
+            Direction::North,
+            Direction::West,
+            Direction::South,
+            Direction::East,
+        ] {
+            dish.roll_in_direction(dir);
+        }
+        north_loads.push(dish.calc_north_load());
+    }
+
+    let trimmed_loads = north_loads.iter().skip(trim_sample_start).collect_vec();
+
+    let mut pattern_map: HashMap<Vec<usize>, usize> = HashMap::new();
+    let possible_pattern_sizes = [9];
+
+    // iterate over windows and record count of patterns
+    for win_size in possible_pattern_sizes {
+        trimmed_loads
+            .windows(win_size)
+            .map(|arr| arr.iter().map(|x| **x).collect_vec())
+            .for_each(|v| *pattern_map.entry(v.to_owned()).or_default() += 1);
+    }
+
+    // identify most frequent pattern
+    let max_counts: Vec<(&Vec<usize>, &usize)> = pattern_map.iter().max_set_by_key(|(_, v)| *v);
+    let (pat, count) = max_counts
+        .iter()
+        .max_by(|(k1, _), (k2, _)| k1.len().cmp(&k2.len()))
+        .expect("max by succeeds");
+
+    println!("pattern {:?} occurs {} times", pat, count);
+
+    let pat_start = trimmed_loads
+        .iter()
+        .position(|x| **x == pat[0])
+        .expect("pattern starter")
+        + trim_sample_start;
+
+    println!("trim_sample_start: {}", trim_sample_start);
+    println!("pat start: {}", pat_start);
+
+    let desired_iteration: usize = 1000000000;
+    let predicted_idx_of_desired_iteration = (desired_iteration - (pat_start + 1)) % pat.len();
+    println!(
+        "predicting iteration {} (trimmed to {}) to have north load of {}",
+        desired_iteration,
+        predicted_idx_of_desired_iteration,
+        pat[predicted_idx_of_desired_iteration]
+    );
+
+    let mut load_freq_map: HashMap<usize, usize> = HashMap::new();
+    north_loads.iter().enumerate().for_each(|(i, l)| {
+        *load_freq_map.entry(l.to_owned()).or_default() += 1;
+        //println!("{}:\t{}\t{}", i, l, load_freq_map.get(l).unwrap());
+    });
 }
